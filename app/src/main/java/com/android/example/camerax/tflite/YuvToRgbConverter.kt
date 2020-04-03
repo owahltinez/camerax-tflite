@@ -39,16 +39,25 @@ class YuvToRgbConverter(context: Context) {
     private val rs = RenderScript.create(context)
     private val scriptYuvToRgb = ScriptIntrinsicYuvToRGB.create(rs, Element.U8_4(rs))
 
+    private var pixelCount: Int = -1
+    private lateinit var outputBuffer: ByteBuffer
     private lateinit var inputAllocation: Allocation
     private lateinit var outputAllocation: Allocation
 
     @Synchronized
     fun yuvToRgb(image: Image, output: Bitmap) {
 
+        // Ensure that the intermediate output byte buffer is allocated
+        if (!::outputBuffer.isInitialized) {
+            pixelCount = image.cropRect.width() * image.cropRect.height()
+            outputBuffer = ByteBuffer.allocateDirect(
+                pixelCount * ImageFormat.getBitsPerPixel(ImageFormat.YUV_420_888) / 8)
+        }
+
         // Get the YUV data in byte array form
         val yuvBytes = imageToByteBuffer(image)
 
-        // Make sure the inputs and outputs are allocated in memory
+        // Ensure that the RenderScript inputs and outputs are allocated
         if (!::inputAllocation.isInitialized) {
             inputAllocation = Allocation.createSized(rs, Element.U8(rs), yuvBytes.array().size)
         }
@@ -67,11 +76,8 @@ class YuvToRgbConverter(context: Context) {
         assert(image.format == ImageFormat.YUV_420_888)
 
         val imageCrop = image.cropRect
-        val pixelCount = imageCrop.width() * imageCrop.height()
         val imagePlanes = image.planes
         val rowData = ByteArray(imagePlanes.first().rowStride)
-        val outputBuffer = ByteBuffer.allocateDirect(
-            pixelCount * ImageFormat.getBitsPerPixel(ImageFormat.YUV_420_888) / 8)
 
         imagePlanes.forEachIndexed { planeIndex, plane ->
 
@@ -137,10 +143,11 @@ class YuvToRgbConverter(context: Context) {
                     imageCrop.bottom / 2
                 )
             }
+
             val planeWidth = planeCrop.width()
             val planeHeight = planeCrop.height()
 
-            buffer.position(rowStride * (planeCrop.top) + pixelStride * (planeCrop.left))
+            buffer.position(rowStride * planeCrop.top + pixelStride * planeCrop.left)
             for (row in 0 until planeHeight) {
                 val length: Int
                 if (pixelStride == 1 && outputStride == 1) {

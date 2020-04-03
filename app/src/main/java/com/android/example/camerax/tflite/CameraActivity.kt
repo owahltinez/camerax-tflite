@@ -144,7 +144,6 @@ class CameraActivity : AppCompatActivity() {
                 .setTargetAspectRatio(AspectRatio.RATIO_4_3)
                 .setTargetRotation(view_finder.display.rotation)
                 .build()
-                .apply { setSurfaceProvider(view_finder.previewSurfaceProvider) }
 
             // Set up the image analysis use case which will process frames in real time
             val imageAnalysis = ImageAnalysis.Builder()
@@ -203,6 +202,10 @@ class CameraActivity : AppCompatActivity() {
             cameraProvider.unbindAll()
             val camera = cameraProvider.bindToLifecycle(
                 this as LifecycleOwner, cameraSelector, preview, imageAnalysis)
+
+            // Use the camera object to link our preview use case with the view
+            preview.setSurfaceProvider(view_finder.createSurfaceProvider(camera.cameraInfo))
+
         }, ContextCompat.getMainExecutor(this))
     }
 
