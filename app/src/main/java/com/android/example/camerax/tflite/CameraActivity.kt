@@ -61,7 +61,7 @@ class CameraActivity : AppCompatActivity() {
     private val permissions = listOf(Manifest.permission.CAMERA)
     private val permissionsRequestCode = Random.nextInt(0, 10000)
 
-    private var lensFacing: Int = CameraSelector.LENS_FACING_BACK
+    private var lensFacing: Int = CameraSelector.LENS_FACING_FRONT
     private val isFrontFacing get() = lensFacing == CameraSelector.LENS_FACING_FRONT
 
     private var pauseAnalysis = false
@@ -204,7 +204,7 @@ class CameraActivity : AppCompatActivity() {
                 this as LifecycleOwner, cameraSelector, preview, imageAnalysis)
 
             // Use the camera object to link our preview use case with the view
-            preview.setSurfaceProvider(view_finder.createSurfaceProvider(camera.cameraInfo))
+            preview.setSurfaceProvider(view_finder.surfaceProvider)
 
         }, ContextCompat.getMainExecutor(this))
     }
